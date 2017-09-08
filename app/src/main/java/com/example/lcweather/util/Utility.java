@@ -5,6 +5,8 @@ import android.text.TextUtils;
 import com.example.lcweather.db.City;
 import com.example.lcweather.db.County;
 import com.example.lcweather.db.Province;
+import com.example.lcweather.gson.Weather;
+import com.google.gson.Gson;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -83,4 +85,20 @@ public class Utility {
         return false;
     }
 
+
+    /**
+     * 将数据的主题内容解析出来，然后用fromJson转为Gson类，返回的是一个weather
+     */
+    public static Weather handleWeatherResponse(String response) {
+        try {
+            JSONObject jsonObject = new JSONObject(response);
+            JSONArray jsonArray = jsonObject.getJSONArray("HeWeather");
+            String weatherContent = jsonArray.getJSONObject(0).toString();
+            return new Gson().fromJson(weatherContent, Weather.class);
+            //return的一个weather的实例
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 }

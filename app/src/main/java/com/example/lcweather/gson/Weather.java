@@ -14,13 +14,11 @@ public class Weather {
 
     public Basic basic;
 
-    public AQI aqi;
-
     public Now now;
 
     public Suggestion suggestion;
 
     @SerializedName("daily_forecast")
-    public List<Weather> weatherList;
+    public List<Forecast> forecastList;
 
 }
