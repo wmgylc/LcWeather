@@ -19,6 +19,7 @@ import android.widget.Toast;
 import com.example.lcweather.db.City;
 import com.example.lcweather.db.County;
 import com.example.lcweather.db.Province;
+import com.example.lcweather.gson.Weather;
 import com.example.lcweather.util.HttpUtil;
 import com.example.lcweather.util.Utility;
 
@@ -103,11 +104,19 @@ public class ChooseAreaFragment extends Fragment {
                 } else if (currentLevel == LEVEL_COUNTY) {
                     //这里要跳转到WeatherActivity，并传入weatherId
                     String weatherId = countyList.get(position).getWeatherId();
-                    Intent intent = new Intent(getActivity(), WeatherActivity.class);
-                    intent.putExtra("weather_id", weatherId);
-                    startActivity(intent);
-                    //如果不finish的话就会入栈了
-                    getActivity().finish();
+                    //
+                    if (getActivity() instanceof MainActivity) {
+                        Intent intent = new Intent(getActivity(), WeatherActivity.class);
+                        intent.putExtra("weather_id", weatherId);
+                        startActivity(intent);
+                        //如果不finish的话就会入栈了
+                        getActivity().finish();
+                    } else if (getActivity() instanceof WeatherActivity) {
+                        WeatherActivity activity = (WeatherActivity) getActivity();
+                        activity.drawerLayout.closeDrawers();
+                        activity.swipeRefresh.setRefreshing(true);
+                        activity.requestWeather(weatherId);
+                    }
                 }
             }
         });

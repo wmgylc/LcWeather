@@ -4,12 +4,15 @@ import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Build;
 import android.preference.PreferenceManager;
+import android.support.v4.view.GravityCompat;
+import android.support.v4.widget.DrawerLayout;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -31,7 +34,12 @@ import okhttp3.Response;
 
 public class WeatherActivity extends AppCompatActivity {
 
-    private SwipeRefreshLayout swipeRefresh;
+    //在ChooseAreaFragment中需要关闭
+    public DrawerLayout drawerLayout;
+
+    private Button navButton;
+
+    public SwipeRefreshLayout swipeRefresh;
 
     private String mWeatherId;
 
@@ -47,7 +55,6 @@ public class WeatherActivity extends AppCompatActivity {
 
     private TextView weatherInfoText;
 
-    //
     private LinearLayout forecastLayout;
 
     private TextView comfortText;
@@ -70,6 +77,8 @@ public class WeatherActivity extends AppCompatActivity {
         }
         setContentView(R.layout.activity_weather);
 
+        drawerLayout = (DrawerLayout) findViewById(R.id.draw_layout);
+        navButton = (Button) findViewById(R.id.nav_button);
         swipeRefresh = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh);
         swipeRefresh.setColorSchemeResources(R.color.colorPrimary);
         bingPicImg = (ImageView) findViewById(R.id.bing_pic_img);
@@ -111,9 +120,16 @@ public class WeatherActivity extends AppCompatActivity {
                 requestWeather(mWeatherId);
             }
         });
+
+        navButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                drawerLayout.openDrawer(GravityCompat.START);
+            }
+        });
     }
 
-    private void requestWeather(String weatherId) {
+    public void requestWeather(String weatherId) {
         final
         String Url = "http://guolin.tech/api/weather?cityid=" + weatherId
                 + "&key=d2aef8bddce74235b61a5bc06ca1b61b";
