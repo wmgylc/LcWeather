@@ -1,17 +1,22 @@
 package com.example.lcweather;
 
 import android.content.SharedPreferences;
+import android.graphics.Color;
+import android.os.Build;
 import android.preference.PreferenceManager;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.bumptech.glide.Glide;
 import com.bumptech.glide.util.Util;
 import com.example.lcweather.gson.Forecast;
 import com.example.lcweather.gson.Weather;
@@ -25,6 +30,10 @@ import okhttp3.Callback;
 import okhttp3.Response;
 
 public class WeatherActivity extends AppCompatActivity {
+
+    private SwipeRefreshLayout swipeRefresh;
+
+    private ImageView bingPicImg;
 
     private ScrollView weatherLayout;
 
@@ -48,8 +57,21 @@ public class WeatherActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        //?
+        if (Build.VERSION.SDK_INT >= 21) { //如果当前版本大于5.0
+            View decorView = getWindow().getDecorView();
+            decorView.setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                    | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+            );
+            getWindow().setStatusBarColor(Color.TRANSPARENT);
+        }
         setContentView(R.layout.activity_weather);
 
+        swipeRefresh = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh);
+        //?
+        swipeRefresh.setColorSchemeResources(R.color.colorPrimary);
+        bingPicImg = (ImageView) findViewById(R.id.bing_pic_img);
         weatherLayout = (ScrollView) findViewById(R.id.weather_layout);
         titleCity = (TextView) findViewById(R.id.title_city);
         titleUpdateTime = (TextView) findViewById(R.id.title_update_time);
@@ -66,6 +88,11 @@ public class WeatherActivity extends AppCompatActivity {
             //在下一次进入app且未更新数据的情况下，可以直接读取缓存信息
             Weather weather = Utility.handleWeatherResponse(weatherString);
             ShowWeatherInfo(weather);
+            //下一次进入app后已经有缓存数据，不需要再次寻求网络资源
+            String bingPic = prefs.getString("bing_pic", null);
+            if (bingPic != null) {
+                Glide.with(this).load(bingPic).into(bingPicImg);
+            }
         } else {
             //由选择省市县的fragment传来的数据
             String weatherId = getIntent().getStringExtra("weather_id");
@@ -111,6 +138,9 @@ public class WeatherActivity extends AppCompatActivity {
                 });
             }
         });
+
+        //每次request都更新图片
+        loadBingPic();
     }
 
     //给每个数据setText
@@ -148,6 +178,37 @@ public class WeatherActivity extends AppCompatActivity {
         sportText.setText(sport);
         //?
         weatherLayout.setVisibility(View.VISIBLE);
+    }
+
+    private void loadBingPic() {
+        String requestBingPic = "http://guolin.tech/api/bing_pic";
+        HttpUtil.sendOkHttpRequest(requestBingPic, new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                e.printStackTrace();
+                //加载失败不需要通知
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                final String bingPic = response.body().string();
+                SharedPreferences.Editor editor = PreferenceManager
+                        .getDefaultSharedPreferences(WeatherActivity.this)
+                        .edit();
+                //将数据
+                editor.putString("bing_pic", bingPic);
+                editor.apply();
+                Log.d("WeatherActivity", bingPic);
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Glide.with(WeatherActivity.this)
+                                .load(bingPic)
+                                .into(bingPicImg);
+                    }
+                });
+            }
+        });
     }
 
 }
