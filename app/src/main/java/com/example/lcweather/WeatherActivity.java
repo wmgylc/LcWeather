@@ -33,6 +33,8 @@ public class WeatherActivity extends AppCompatActivity {
 
     private SwipeRefreshLayout swipeRefresh;
 
+    private String mWeatherId;
+
     private ImageView bingPicImg;
 
     private ScrollView weatherLayout;
@@ -69,7 +71,6 @@ public class WeatherActivity extends AppCompatActivity {
         setContentView(R.layout.activity_weather);
 
         swipeRefresh = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh);
-        //?
         swipeRefresh.setColorSchemeResources(R.color.colorPrimary);
         bingPicImg = (ImageView) findViewById(R.id.bing_pic_img);
         weatherLayout = (ScrollView) findViewById(R.id.weather_layout);
@@ -85,24 +86,35 @@ public class WeatherActivity extends AppCompatActivity {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
         String weatherString = prefs.getString("weather", null);
         if (weatherString != null) {
-            //在下一次进入app且未更新数据的情况下，可以直接读取缓存信息
+            //情况一：在下一次进入app且未更新数据的情况下，可以直接读取缓存信息
             Weather weather = Utility.handleWeatherResponse(weatherString);
             ShowWeatherInfo(weather);
+            mWeatherId = weather.basic.weatherId;
             //下一次进入app后已经有缓存数据，不需要再次寻求网络资源
             String bingPic = prefs.getString("bing_pic", null);
             if (bingPic != null) {
                 Glide.with(this).load(bingPic).into(bingPicImg);
             }
         } else {
-            //由选择省市县的fragment传来的数据
-            String weatherId = getIntent().getStringExtra("weather_id");
+            //情况二：由选择省市县的fragment传来的数据
+            mWeatherId = getIntent().getStringExtra("weather_id");
             //在获取到数据之前隐藏视图
             weatherLayout.setVisibility(View.INVISIBLE);
-            requestWeather(weatherId);
+            requestWeather(mWeatherId);
         }
+
+        //注意是OnRefreshListener
+        swipeRefresh.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                //weatherId来自两种情况可能
+                requestWeather(mWeatherId);
+            }
+        });
     }
 
     private void requestWeather(String weatherId) {
+        final
         String Url = "http://guolin.tech/api/weather?cityid=" + weatherId
                 + "&key=d2aef8bddce74235b61a5bc06ca1b61b";
         HttpUtil.sendOkHttpRequest(Url, new Callback() {
@@ -113,6 +125,7 @@ public class WeatherActivity extends AppCompatActivity {
                     @Override
                     public void run() {
                         Toast.makeText(WeatherActivity.this, "获取天气信息失败", Toast.LENGTH_SHORT).show();
+                        swipeRefresh.setRefreshing(false);
                     }
                 });
             }
@@ -125,15 +138,15 @@ public class WeatherActivity extends AppCompatActivity {
                     @Override
                     public void run() {
                         if (weather != null && weather.status.equals("ok")) {
-                            SharedPreferences.Editor editor = PreferenceManager
-                                    .getDefaultSharedPreferences(WeatherActivity.this)
-                                    .edit();
+                            SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(WeatherActivity.this).edit();
                             editor.putString("weather", responseText);
+                            editor.putBoolean("getWeatherInfo", true);
                             editor.apply();
                             ShowWeatherInfo(weather);
                         } else {
                             Toast.makeText(getApplicationContext(), "获取天气信息失败", Toast.LENGTH_SHORT).show();
                         }
+                        swipeRefresh.setRefreshing(false);
                     }
                 });
             }
@@ -192,13 +205,13 @@ public class WeatherActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 final String bingPic = response.body().string();
+                //接受一个context，默认程序包名作为键值
                 SharedPreferences.Editor editor = PreferenceManager
                         .getDefaultSharedPreferences(WeatherActivity.this)
                         .edit();
-                //将数据
                 editor.putString("bing_pic", bingPic);
                 editor.apply();
-                Log.d("WeatherActivity", bingPic);
+                //Log.d("WeatherActivity", bingPic);
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
