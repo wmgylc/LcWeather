@@ -13,13 +13,20 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        //如果if成立，说明已经选择了城市，就直接进入weatherActivity
-        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
-        if (preferences.getString("weather", null) != null) {
-            Intent intent = new Intent(this, WeatherActivity.class);
-            startActivity(intent);
-            //?
-            finish();
+        boolean reChoose = getIntent().getBooleanExtra("reChoose", false);
+        if (reChoose == false) {
+            SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+            if (preferences.getString("weather", null) != null) {
+                Intent intent = new Intent(this, WeatherActivity.class);
+                startActivity(intent);
+                finish();
+                /*Bug：会直接跳转到WeatherActivity而不会改变查询天气
+                 *原因：再次选择城市的时候，weatherString不为null，因而在WeatherActivity中会直接进入情况二，
+                 *然而此时的weatherString是原来的天气，而不是新选择的天气
+                 *      Bug fixed.
+                 *      直接在选择的时候将weatherString重置为null
+                 */
+            }
         }
     }
 

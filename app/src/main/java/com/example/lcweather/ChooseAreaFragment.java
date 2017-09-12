@@ -3,9 +3,10 @@ package com.example.lcweather;
 import android.app.Fragment;
 import android.app.ProgressDialog;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.provider.ContactsContract;
-import android.support.annotation.Nullable;
+import android.preference.PreferenceManager;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -19,7 +20,6 @@ import android.widget.Toast;
 import com.example.lcweather.db.City;
 import com.example.lcweather.db.County;
 import com.example.lcweather.db.Province;
-import com.example.lcweather.gson.Weather;
 import com.example.lcweather.util.HttpUtil;
 import com.example.lcweather.util.Utility;
 
@@ -80,7 +80,6 @@ public class ChooseAreaFragment extends Fragment {
         titleText = (TextView) view.findViewById(R.id.title_text);
         backButton = (Button) view.findViewById(R.id.back_button);
         listView = (ListView) view.findViewById(R.id.list_view);
-        //目前的datalist是空的？
         adapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_list_item_1, dataList);
         listView.setAdapter(adapter);
         return view;
@@ -90,6 +89,7 @@ public class ChooseAreaFragment extends Fragment {
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
         //默认情况下就是加载省级资源
+        Log.d("TAG", "onActivityCreated");
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
@@ -102,21 +102,17 @@ public class ChooseAreaFragment extends Fragment {
                     selectedCity = cityList.get(position);
                     queryCounties();
                 } else if (currentLevel == LEVEL_COUNTY) {
-                    //这里要跳转到WeatherActivity，并传入weatherId
                     String weatherId = countyList.get(position).getWeatherId();
-                    //
-                    if (getActivity() instanceof MainActivity) {
-                        Intent intent = new Intent(getActivity(), WeatherActivity.class);
-                        intent.putExtra("weather_id", weatherId);
-                        startActivity(intent);
-                        //如果不finish的话就会入栈了
-                        getActivity().finish();
-                    } else if (getActivity() instanceof WeatherActivity) {
-                        WeatherActivity activity = (WeatherActivity) getActivity();
-                        activity.drawerLayout.closeDrawers();
-                        activity.swipeRefresh.setRefreshing(true);
-                        activity.requestWeather(weatherId);
-                    }
+                    // 将weather修改为null，确保进入WeatherActivity的第一种情况
+                    SharedPreferences.Editor editor = PreferenceManager
+                            .getDefaultSharedPreferences(getContext())
+                            .edit();
+                    editor.putString("weather", null);
+                    editor.apply();
+                    Intent intent = new Intent(getActivity(), WeatherActivity.class);
+                    intent.putExtra("weather_id", weatherId);
+                    startActivity(intent);
+                    getActivity().finish();
                 }
             }
         });
